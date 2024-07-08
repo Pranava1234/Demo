@@ -1,0 +1,502 @@
+PROMGRAM 1 
+
+1. Consider the following schema for a Library Database:
+BOOK (BOOK_ID, TITLE, PUBLISHER_NAME, PUB_YEAR)
+BOOK_AUTHORS (BOOK_ID, AUTHOR_NAME)
+PUBLISHER (NAME, ADDRESS, PHONE)
+BOOK_COPIES (BOOK_ID, BRANCH_ID, NO_OF_COPIES)
+BOOK_LENDING (BOOK_ID, BRANCH_ID, CARD_NO, DATE_OUT, DUE_DATE)
+LIBRARY_BRANCH (BRANCH_ID, BRANCH_NAME, ADDRESS)
+CARD (CARD_NO)
+Write SQL queries to
+a) Retrieve details of all books in the library – id, title, name of publisher, authors, number of copies in each branch.
+b) Get the particulars of borrowers who have borrowed more than 3 books, but from Jan 2017 to Jun 2017.
+c) Partition the BOOK table based on year of publication. Demonstrate its working with a simple query.
+d) Create a view of all books and its number of copies that are currently available in the library.
+e) Delete a book in the BOOK table. Update the contents of other tables to reflect this data manipulation operation.
+
+
+
+1)Retrieve details of all books in the library – id, title, name of publisher, authors, number of copies in each branch.
+
+SELECT B.BOOK_ID ,B.TITLE,B.PUB_NAME , A.AUTHOR_NAME, C.NO_OF_COPIES, L.BRANCH_ID 
+FROM BOOK B,BOOK_AUTHORS A, BOOK_COPIES C, LIBRARY_BRANCH L
+WHERE B.BOOK_ID=A.BOOK_ID AND B.BOOK_ID=C.BOOK_ID
+AND L.BRANCH_ID=C.BRANCH_ID;
+
+
+   BOOK_ID TITLE                PUB_NAME             AUTHOR_NAME
+---------- -------------------- -------------------- --------------------
+NO_OF_COPIES  BRANCH_ID
+------------ ----------
+         1 DBMS                 MCGRAW-HILL          NAVATHE
+          10         10
+
+         1 DBMS                 MCGRAW-HILL          NAVATHE
+           5         11
+
+         2 ADBMS                MCGRAW-HILL          NAVATHE
+           2         12
+
+
+   BOOK_ID TITLE                PUB_NAME             AUTHOR_NAME
+---------- -------------------- -------------------- --------------------
+NO_OF_COPIES  BRANCH_ID
+------------ ----------
+         2 ADBMS                MCGRAW-HILL          NAVATHE
+           5         13
+
+         3 CN                   PEARSON              TANEBAUM
+           7         14
+
+         4 CG                   GRUPO PLANETA        EDWARD ANGEL
+           3         11
+
+
+   BOOK_ID TITLE                PUB_NAME             AUTHOR_NAME
+---------- -------------------- -------------------- --------------------
+NO_OF_COPIES  BRANCH_ID
+------------ ----------
+         5 OS                   PEARSON              GALVIN
+           1         10
+
+
+
+2)Get the particulars of borrowers who have borrowed more than 3 books, but from Jan 2017 to Jun 2017.
+
+SELECT CARD_NO FROM
+BOOK_LENDING
+WHERE DATE_OUT BETWEEN '01-JAN-2017' AND '01-JUL-2017'GROUP
+BY CARD_NO
+HAVING COUNT (*)>3;
+
+
+  CARD_NO
+---------
+      101
+
+
+3)Delete a book in the BOOK table. Update the contents of other tables to reflect this data manipulation operation.
+
+
+DELETE FROM BOOKWHERE
+BOOK_ID=3;
+
+
+4)Partition the BOOK table based on year of publication. Demonstrate its working with a simple query.
+
+
+CREATE VIEW V_PUBLICATION AS
+SELECT PUB_YEAR
+FROM BOOK;
+
+PUB_YEAR
+--------------------
+SEP-2016
+JAN-2017
+JUN-2016
+SEP-2015
+MAY-2016
+
+
+5)Create a view of all books and its number of copies that are currently available in the library.
+
+
+CREATE VIEW VI_BOOKS AS
+SELECT B.BOOK_ID, B.TITLE, C.NO_OF_COPIES
+FROM BOOK B, BOOK_COPIES C, LIBRARY_BRANCH L WHERE
+B.BOOK_ID=C.BOOK_ID
+AND C.BRANCH_ID=L.BRANCH_ID;
+
+  BOOK_ID TITLE                NO_OF_COPIES
+--------- -------------------- ------------
+        3 CN                              7
+        1 DBMS                           10
+        1 DBMS                            5
+        2 ADBMS                           2
+        2 ADBMS                           5
+        5 OS                              1
+        4 CG                              3
+
+
+
+PROGRAM 2
+
+2. Consider the following schema for Order Database:
+ SALESMAN (SALESMAN_ID, NAME, CITY, COMMISSION)
+ CUSTOMER (CUSTOMER_ID, CUST_NAME, CITY, GRADE, SALESMAN_ID)
+ORDERS (ORD_NO, PURCHASE_AMT, ORD_DATE, CUSTOMER_ID, SALESMAN_ID)
+Write SQL queries to
+a) Count the customers with grades above Bangalore’s average.
+b) Find the name and numbers of all salesmen who had more than one customer.
+c) List all the salesman and indicate those who have and do not have customers in their cities (Use
+UNION operation.)
+d) Create a view that finds the salesman who has the customer with the highest order of a day.
+e) Demonstrate the DELETE operation by removing salesman with id 1000. All his orders must also be
+deleted
+
+
+a) Count the customers with grades above Bangalore’s average.
+
+select count(*) from Customer where Grade > (select avg(Grade) from Customer where city =
+'BANGALORE');
+
+ COUNT(*)
+---------
+        3
+
+OR
+
+select grade,count(Customer_ID) from customer having grade >
+(Select avg(grade) from Customer where city='BANGALORE') group by grade;
+
+
+GRADE COUNT(CUSTOMER_ID)
+----- ------------------
+  400                  2
+  300                  1
+
+
+b) Find the name and numbers of all salesmen who had more than one customer.
+
+select Salesman_ID, Name from Salesman S having
+(select count(*) from Customer where Salesman_ID=S.Salesman_ID) > 1 group by Name,
+Salesman_ID;
+
+SALESMAN_ID NAME
+----------- --------------------
+       2000 RAVI
+       1000 JOHN
+
+c) List all the salesman and indicate those who have and do not have customers in their cities (Use
+
+select Salesman.Salesman_ID,Name,Cust_Name from Salesman,Customer
+where Salesman.City=Customer.City
+Union
+select Salesman.Salesman_ID,Name,'No-Match'
+from Salesman where not City=any (select City from Customer);
+
+
+SALESMAN_ID NAME                 CUST_NAME
+----------- -------------------- --------------------
+       1000 JOHN                 CHETHAN
+       1000 JOHN                 MAMATHA
+       1000 JOHN                 PREETHI
+       2000 RAVI                 CHETHAN
+       2000 RAVI                 MAMATHA
+       2000 RAVI                 PREETHI
+       3000 KUMAR                No-Match
+       4000 SMITH                No-Match
+       5000 HARSHA               No-Match
+
+d) Create a view that finds the salesman who has the customer with the highest order of a day.
+
+create view salesman_orders as select b.Ord_Due, a.Salesman_ID,Name
+from Salesman a, Orders b where A.Salesman_ID=b.Salesman_ID and b.Purchase_Amt=
+(select max(Purchase_Amt) from Orders C where C.Ord_Due=b.Ord_Due);
+
+ORD_DUE   SALESMAN_ID NAME
+--------- ----------- -------
+04-MAY-17        1000 JOHN
+20-JAN-17        2000 RAVI
+13-APR-17        3000 KUMAR
+09-MAR-17        2000 RAVI
+
+
+e) Demonstrate the DELETE operation by removing salesman with id 1000. All his orders must also be
+
+delete from Salesman where Salesman_ID=1000;
+
+
+
+PROGRAM 3
+
+3. Consider the schema for Company Database:
+EMPLOYEE(SSN, NAME, ADDRESS, SEX, SALARY, SUPERSSN, DNO)
+DEPARTMENT(DNO, DNAME, MGRSSN, MGRSTARTDATE)
+DLOCATION(DNO,DLOC)
+PROJECT(PNO, PNAME, PLOCATION, DNO)
+WORKS_ON(SSN, PNO, HOURS)
+Write SQL queries to
+a) Make a list of all project numbers for projects that involve an employee whose last name is ‘Scott’, either as a worker or as a manager of the department that Controls the project.
+b) Show the resulting salaries if every employee working on the ‘IoT’ project is Given a 10 percent raise.
+c) Find the sum of the salaries of all employees of the ‘Accounts’ department, as well as the maximum salary, the minimum salary, and the average salary in this department
+d) Retrieve the name of each employee who works on the entire projects controlledby department number 5 (use NOT EXISTS operator).
+e) For each department that has more than five employees, retrieve the department number and the number of its employees who are making more than Rs. 6,00,000.
+
+
+a) Make a list of all project numbers for projects that involve an employee whose last name is ‘Scott’, either as a worker or as a manager of the department that Controls the project.
+
+select p.pno
+from employee e, department d, project p
+where p.dno=d.dno and d.manager_ssn=e.ssn and e.name='SCOTT'
+union
+select w.pno
+from employee e, works_on w
+where e.ssn=w.ssn and e.name='SCOTT';
+
+
+
+      PNO
+---------
+     1000
+     1001
+     1002
+
+b) Show the resulting salaries if every employee working on the ‘IoT’ project is Given a 10 percent raise.
+
+select name, 1.1* salary as raised_salary
+from employee e, project p, works_on w
+where p.pname='IOT' and p.pno=w.pno and w.ssn=e.ssn;
+
+
+NAME                 RAISED_SALARY
+-------------------- -------------
+SCOTT                       715000
+MARY                        770000
+LOUIS                       550000
+ROSY                        935000
+
+
+c) Find the sum of the salaries of all employees of the ‘Accounts’ department, as well as the maximum salary, the minimum salary, and the average salary in this department
+
+select sum(Salary) as sumsal, avg(Salary) as avgsal, min(Salary) as minsal, max(Salary) as
+maxsal
+from Employee e, Department d
+where e.dno=d.dno and d.Dname='ACCOUNTS';
+
+    SUMSAL     AVGSAL     MINSAL     MAXSAL
+---------- ---------- ---------- ----------
+   1500000     750000     650000     850000
+
+d) Retrieve the name of each employee who works on the entire projects controlledby department number 5 (use NOT EXISTS operator).
+
+select e.name
+from Employee e
+where not exists(
+ (select PNO from Project where DNO=5)
+ minus
+ (select PNO from Works_On where e.SSN=SSN));
+
+
+NAME
+--------------------
+SCOTT
+MARY
+LOUIS
+CINDU
+BABY
+SIEMEN
+ROSY
+RONALDO
+MESSI
+RON
+HARRY
+
+NAME
+--------------------
+DANIEL
+AUSTIN
+
+e) For each department that has more than five employees, retrieve the department number and the number of its employees who are making more than Rs. 6,00,000.
+
+select e.dno, count(*) as Employee_count
+from employee e, department d
+where e.dno=d.dno and salary> 600000 and e.dno in ( select dno
+ from employee
+ group by dno
+ having count(*)>5)
+group by e.dno ;
+
+
+
+       DNO EMPLOYEE_COUNT
+---------- --------------
+        50              4
+
+PROGRAM 4
+4. The following relations keep track of airline flight information:
+FLIGHTS (FLNO: INTEGER, FROM: STRING, TO: STRING, DISTANCE: INTEGER, DEPARTS:TIME, ARRIVES: TIME, PRICE: INTEGER)
+AIRCRAFT (AID: INTEGER, ANAME: STRING, CRUISINGRANGE: INTEGER)
+CERTIFIED (EID: INTEGER, AID: INTEGER)
+EMPLOYEES (EID: INTEGER, ENAME: STRING, SALARY: INTEGER)
+Note that the Employees relation describes pilots and other kinds of employees as well; every pilot is certified for some aircraft, and only pilots are certified to fly.
+Write each of the following queries in SQL.
+a) Find the names of aircraft such that all pilots certified to operate them earn more than $80,000.
+b) For each pilot who is certified for more than three aircraft, find the eid and the maximum cruisingrange of the aircraft for which she or he is certified.
+c) For all aircraft with cruisingrange over 1000 miles, find the name of the aircraft and the average salary of all pilots certified for this aircraft.
+d) Print the enames of pilots who can operate planes with cruising range greater than 3000 miles but are not certified on any Boeing aircraft.
+e) Print the name and salary of every nonpilot whose salary is more than the average salary for pilots.
+
+a) Find the names of aircraft such that all pilots certified to operate them earn more than $80,000.
+
+SELECT DISTINCT ANAME
+ FROM AIRCRAFT A,EMPLOYEES E, CERTIFIED C
+ WHERE A.AID=C.AID AND E.EID=C.EID AND E.SALARY>80000;
+
+ANAME
+-----------------
+AIRBUS
+AIRCRAFT02
+BOEING
+JET01
+AIRBUS380
+
+
+b) For each pilot who is certified for more than three aircraft, find the eid and the maximum cruisingrange of the aircraft for which she or he is certified.
+
+SELECT E.EID,MAX(CRUISINGREANGE)
+ FROM EMPLOYEES E, CERTIFIED C,AIRCRAFT A
+ WHERE E.EID=C.EID AND A.AID=C.AID
+ GROUP BY E.EID
+ HAVING COUNT(*)>3;
+
+
+  EID MAX(CRUISINGREANGE)
+----- -------------------
+    1                8000
+
+
+c) For all aircraft with cruisingrange over 1000 miles, find the name of the aircraft and the average salary of all pilots certified for this aircraft.
+
+SELECT A.ANAME,AVG(SALARY)
+FROM EMPLOYEES E,CERTIFIED C,AIRCRAFT A
+WHERE C.EID=E.EID AND A.AID=C.AID AND CRUISINGREANGE>1000
+GROUP BY A.ANAME;
+
+
+ANAME                AVG(SALARY)
+-------------------- -----------
+BOEING                73333.3333
+JET01                      57500
+AIRBUS380             53333.3333
+
+d) Print the enames of pilots who can operate planes with cruising range greater than 3000 miles but are not certified on any Boeing aircraft.
+
+select ename from employees
+where eid in (select eid from certified where aid in
+( select aid from aircraft where cruisingreange>=3000 and aname<>'boeing'));
+
+
+ENAME
+---------
+AJAY
+AJITH
+HARRY
+RON
+RAM
+
+
+e) Print the name and salary of every nonpilot whose salary is more than the average salary for pilots.
+
+SELECT EID,ENAME,SALARY FROM EMPLOYEES
+ WHERE SALARY>(SELECT AVG(SALARY) FROM EMPLOYEES E,  CERTIFIED C WHERE E.EID=C.EID)
+AND EID NOT IN (SELECT EID FROM CERTIFIED);
+
+
+ EID ENAME                    SALARY
+---- -------------------- ----------
+   8 MANOJ                     80000
+
+
+
+PROGRAM 5
+5. Consider the following relations:
+STUDENT(SNUM: INTEGER, SNAME: STRING, MAJOR: STRING, LEVEL: STRING, AGE: INTEGER)
+CLASS(NAME: STRING, MEETS AT: STRING, ROOM: STRING, FID: INTEGER)
+ENROLLED(SNUM: INTEGER, CNAME: STRING)
+FACULTY(FID: INTEGER, FNAME: STRING, DEPTID: INTEGER)
+The meaning of these relations is straightforward; for example, Enrolled has one record per student-class pair such that the student is enrolled in the class
+Write the following queries in SQL. No duplicates should be printed in any of the answers.
+a) Find the names of all Juniors (level = JR) who are enrolled in a class taught by Rakesh.
+b) Find the age of the oldest student who is either a History major or enrolled in a course taught by Ravi.
+c) Find the names of all students who are enrolled in two classes that meet at the same time.
+d) For each faculty member that has taught classes only in room R128, print the faculty member’s name and the total number of classes she or he has taught.
+e) For each level, print the level and the average age of students for that level.
+
+a) Find the names of all Juniors (level = JR) who are enrolled in a class taught by Rakesh.
+
+SELECT SNAME FROM STUDENT
+ WHERE LVL='JR' AND SNUM IN(SELECT SNUM FROM ENROLLED
+ WHERE CNAME IN(SELECT CNAME FROM CLASS
+ WHERE FID IN (SELECT FID FROM FACULTY 
+ WHERE FNAME='RAKESH')));
+
+
+
+SNAME
+--------
+TARUN
+SID
+
+
+b) Find the age of the oldest student who is either a History major or enrolled in a course taught by Ravi.
+
+SELECT MAX(S.AGE)
+ FROM STUDENT S
+ WHERE MAJOR='HISTORY' OR SNUM IN (SELECT SNUM FROM ENROLLED
+ WHERE CNAME IN (SELECT CNAME FROM CLASS
+ WHERE FID IN (SELECT FID FROM FACULTY
+ WHERE FNAME='RAVI')));
+
+
+
+
+MAX(S.AGE)
+----------
+        21
+
+c) Find the names of all students who are enrolled in two classes that meet at the same time.
+
+SELECT DISTINCT S.SNAME FROM STUDENT S WHERE S.SNUM IN
+ (SELECT E1.SNUM
+ FROM ENROLLED E1,ENROLLED E2,CLASS C1,CLASS C2
+ WHERE E1.CNAME=C1.CNAME AND E2.CNAME=C2.CNAME AND E1.SNUM=E2.SNUM AND E1.CNAME<>E2.CNAME AND C1.MEETS_AT=C2.MEETS_AT);
+
+
+
+SNAME
+----------
+JHANAVI
+SID
+TARUN
+
+d) For each faculty member that has taught classes only in room R128, print the faculty member’s name and the total number of classes she or he has taught.
+
+SELECT DISTINCT F.FNAME,COUNT(*) AS COURSECOUNT
+ FROM CLASS C, FACULTY F
+ WHERE C.FID=F.FID AND C.FID NOT IN (SELECT FID
+ FROM CLASS
+ WHERE ROOM IN( SELECT ROOM
+ FROM CLASS WHERE ROOM!='R128'))
+ GROUP BY F.FNAME;
+
+
+
+
+FNAME                COURSECOUNT
+-------------------- -----------
+RAVI                           5
+
+e) For each level, print the level and the average age of students for that level.
+
+SELECT LVL,AVG(AGE)
+ FROM STUDENT
+GROUP  BY LVL;
+
+
+LVL          AVG(AGE)
+---------- ----------
+SR                 20
+JR                 20
+
+
+
+
+
+
+
+
+
+
+
